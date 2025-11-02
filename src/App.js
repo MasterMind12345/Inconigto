@@ -4,6 +4,7 @@ import UserAuth from './components/UserAuth';
 import UserDashboard from './components/UserDashboard';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import FloatingInstallButton from './components/FloatingInstallButton';
+import SendMessage from './pages/SendMessage'; // AJOUTER
 
 function App() {
   const [user, setUser] = useState(null);
