@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
@@ -8,25 +8,37 @@ const SendMessage = () => {
   const [message, setMessage] = useState('');
   const [user, setUser] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUser();
-  }, [username]);
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
+      console.log('🔍 Recherche utilisateur:', username);
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('username', username)
         .single();
 
-      if (error) throw error;
+      console.log('📦 Résultat Supabase:', { data, error });
+
+      if (error) {
+        console.error('❌ Erreur Supabase:', error);
+        throw error;
+      }
+      
       setUser(data);
     } catch (error) {
-      console.error('Utilisateur non trouvé');
+      console.error('❌ Utilisateur non trouvé:', error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [username]);
+
+  useEffect(() => {
+    console.log('🚀 SendMessage mounted, username:', username);
+    fetchUser();
+  }, [fetchUser]);
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -36,6 +48,8 @@ const SendMessage = () => {
     setIsSending(true);
 
     try {
+      console.log('📤 Envoi message pour user:', user.id);
+      
       const { error } = await supabase
         .from('anonymous_messages')
         .insert({
@@ -43,24 +57,45 @@ const SendMessage = () => {
           message: message.trim()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur envoi message:', error);
+        throw error;
+      }
 
       setMessage('');
       alert('✅ Message envoyé anonymement !');
       setTimeout(() => navigate('/'), 2000);
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('❌ Erreur lors de l\'envoi:', error);
       alert('❌ Erreur lors de l\'envoi du message');
     } finally {
       setIsSending(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          <p className="text-gray-600">Utilisateur non trouvé</p>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Utilisateur non trouvé</h2>
+          <p className="text-gray-600 mb-4">@{username} n'existe pas encore</p>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+          >
+            Retour à l'accueil
+          </button>
         </div>
       </div>
     );
