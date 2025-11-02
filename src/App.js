@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+// IMPORT SUPPRIMÉ : import { supabase } from './supabaseClient';
 import UserAuth from './components/UserAuth';
 import UserDashboard from './components/UserDashboard';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -73,7 +73,7 @@ function App() {
               </div>
               
               <div className="flex items-center space-x-4">
-                <span className="text-white/80">@${user.username}</span>
+                <span className="text-white/80">@{user.username}</span> {/* CORRIGÉ */}
                 <button
                   onClick={handleLogout}
                   className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm"
