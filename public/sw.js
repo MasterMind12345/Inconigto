@@ -1,29 +1,28 @@
-const CACHE_NAME = 'secretstory-v1.3';
-const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/favicon.ico'
-];
+const CACHE_NAME = 'secretstory-v1.4';
+const STATIC_CACHE = 'secretstory-static-v1.0';
 
 // Événement d'installation
 self.addEventListener('install', (event) => {
   console.log('🟢 Service Worker installing... Version:', CACHE_NAME);
   
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('📦 Cache ouvert, ajout des URLs:', urlsToCache);
-        return cache.addAll(urlsToCache)
-          .then(() => {
-            console.log('✅ Toutes les ressources sont en cache');
-          })
-          .catch((error) => {
-            console.error('❌ Erreur lors de la mise en cache:', error);
-          });
+        // Cache uniquement les ressources critiques
+        return cache.addAll([
+          '/',
+          '/index.html',
+          '/manifest.json',
+          '/icon-192.png',
+          '/icon-512.png',
+          '/favicon.ico'
+        ])
+        .then(() => {
+          console.log('✅ Ressources critiques en cache');
+        })
+        .catch((error) => {
+          console.error('❌ Erreur cache ressources critiques:', error);
+        });
       })
   );
   
@@ -40,8 +39,8 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           // Supprime les anciens caches
-          if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Suppression de l\'ancien cache:', cacheName);
+          if (cacheName !== STATIC_CACHE && cacheName !== CACHE_NAME) {
+            console.log('🗑️ Suppression ancien cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -55,46 +54,85 @@ self.addEventListener('activate', (event) => {
 
 // Événement de fetch (interception des requêtes)
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
   // Ignore les requêtes non-GET et les requêtes chrome-extension
-  if (event.request.method !== 'GET' || event.request.url.includes('chrome-extension')) {
+  if (request.method !== 'GET' || request.url.includes('chrome-extension')) {
     return;
   }
 
+  // Pour les routes SPA, sert toujours index.html
+  if (request.destination === 'document' || 
+      (request.mode === 'navigate' && !url.pathname.includes('.'))) {
+    event.respondWith(
+      caches.match('/index.html')
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(request)
+            .then((response) => {
+              // Cache la nouvelle version d'index.html
+              const responseClone = response.clone();
+              caches.open(STATIC_CACHE)
+                .then((cache) => cache.put('/index.html', responseClone));
+              return response;
+            })
+            .catch(() => {
+              // Fallback offline
+              return new Response(`
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <title>SecretStory</title>
+                    <meta charset="utf-8">
+                  </head>
+                  <body>
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; font-family: Arial;">
+                      <div style="text-align: center;">
+                        <h1>SecretStory</h1>
+                        <p>Application hors ligne</p>
+                      </div>
+                    </div>
+                  </body>
+                </html>
+              `, {
+                headers: { 'Content-Type': 'text/html' }
+              });
+            });
+        })
+    );
+    return;
+  }
+
+  // Pour les ressources statiques (CSS, JS, images)
   event.respondWith(
-    caches.match(event.request)
+    caches.match(request)
       .then((response) => {
-        // Si la ressource est en cache, la retourner
+        // Retourne la ressource en cache si disponible
         if (response) {
-          console.log('📨 Servi depuis le cache:', event.request.url);
           return response;
         }
 
-        // Sinon, faire la requête réseau
-        console.log('🌐 Requête réseau:', event.request.url);
-        return fetch(event.request)
+        // Sinon, fait la requête réseau
+        return fetch(request)
           .then((response) => {
-            // Vérifie si la réponse est valide
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
+            // Ne cache que les ressources réussies
+            if (response.status === 200) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(request, responseToCache);
+                });
             }
-
-            // Clone la réponse pour la mettre en cache
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // Mets en cache les nouvelles ressources
-                cache.put(event.request, responseToCache);
-                console.log('💾 Nouvelle ressource mise en cache:', event.request.url);
-              });
-
             return response;
           })
           .catch((error) => {
             console.error('❌ Erreur fetch:', error);
-            // Si hors ligne et pas en cache, on peut retourner une page offline
-            if (event.request.destination === 'document') {
-              return caches.match('/');
+            // Pour les images, retourne une image de fallback
+            if (request.destination === 'image') {
+              return caches.match('/icon-192.png');
             }
           });
       })
@@ -157,4 +195,4 @@ self.addEventListener('error', (error) => {
 });
 
 // Log pour confirmer le chargement
-console.log('🚀 Service Worker chargé avec succès!');
+console.log('🚀 Service Worker chargé avec succès! Version:', CACHE_NAME);
