@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
+// Importation de React Router
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-// J'ai besoin d'importer les composants UserAuth et Dashboard, etc.
-// En se basant sur la structure probable d'un projet React
+
+// Correction des chemins d'importation pour garantir la compilation
+// Si la compilation échoue encore, assurez-vous que tous ces fichiers sont bien dans le dossier './components/'
+// ou modifiez le chemin vers './pages/' ou l'emplacement réel de chaque fichier.
 import UserAuth from './components/UserAuth'; 
 import UserDashboard from './components/UserDashboard';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import FloatingInstallButton from './components/FloatingInstallButton';
-// L'importation de SendMessage est basée sur votre ancien fichier App.js
-import SendMessage from './pages/SendMessage'; 
+// Nous conservons SendMessage dans components pour la cohérence, à ajuster si elle est dans pages/
+import SendMessage from './components/SendMessage'; 
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Vérification de l'utilisateur stocké localement et enregistrement du Service Worker
     checkUser();
     registerServiceWorker();
   }, []);
 
   const checkUser = async () => {
     try {
-      // Utilisation de localStorage pour la persistance de session utilisateur
       const savedUser = localStorage.getItem('secretStory_user');
       if (savedUser) {
         setUser(JSON.parse(savedUser));
@@ -36,7 +37,6 @@ function App() {
   const registerServiceWorker = async () => {
     if ('serviceWorker' in navigator) {
       try {
-        // Le chemin du Service Worker doit être à la racine de l'application
         await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker enregistré avec succès');
       } catch (error) {
@@ -66,7 +66,7 @@ function App() {
       <PWAInstallPrompt />
       <FloatingInstallButton />
 
-      {/* Header conditionnel pour l'utilisateur connecté, maintenant FIXE en haut */}
+      {/* Header fixe en haut */}
       <header className="fixed top-0 left-0 w-full z-10 bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -90,7 +90,7 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content avec padding pour éviter que le contenu soit caché par le header fixe */}
+      {/* Main Content avec padding pour le header fixe */}
       <main className="pt-20 pb-8 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           {/* Routes du tableau de bord */}
@@ -98,7 +98,7 @@ function App() {
             {/* Route par défaut pour l'utilisateur connecté */}
             <Route path="/" element={<UserDashboard user={user} />} />
             
-            {/* Fallback : si l'utilisateur est connecté et accède à une autre route non gérée */}
+            {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
@@ -111,13 +111,10 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-purple-800 to-pink-600">
       <BrowserRouter>
         <Routes>
-          {/* 1. ROUTE PUBLIQUE ET CRITIQUE : Cette route doit toujours être définie en premier */}
-          {/* Elle gère le lien de partage : votresite.com/mastermind -> SendMessage */}
-          {/* C'est la ligne qui corrige l'écran blanc en production */}
+          {/* 1. ROUTE PUBLIQUE et DYNAMIQUE : Prioritaire pour gérer /:username */}
           <Route path="/:username" element={<SendMessage />} />
 
-          {/* 2. ROUTE DE CONNEXION / TABLEAU DE BORD (catch-all pour le reste) */}
-          {/* Gère la racine (/) et toutes les autres routes non définies par le paramètre dynamique. */}
+          {/* 2. ROUTE D'AUTHENTIFICATION/DASHBOARD (catch-all pour le reste) */}
           <Route 
             path="*" 
             element={user ? <AppLayout /> : <UserAuth setUser={setUser} />}
