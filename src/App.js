@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 // Importation de React Router
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-// Correction des chemins d'importation pour garantir la compilation
-// Si la compilation échoue encore, assurez-vous que tous ces fichiers sont bien dans le dossier './components/'
-// ou modifiez le chemin vers './pages/' ou l'emplacement réel de chaque fichier.
+// Correction des chemins d'importation
 import UserAuth from './components/UserAuth'; 
 import UserDashboard from './components/UserDashboard';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import FloatingInstallButton from './components/FloatingInstallButton';
-// Nous conservons SendMessage dans components pour la cohérence, à ajuster si elle est dans pages/
-import SendMessage from './components/SendMessage'; 
+// CORRECTION : SendMessage est dans le dossier pages/
+import SendMessage from './pages/SendMessage'; // ✅ Chemin corrigé
 
 function App() {
   const [user, setUser] = useState(null);
@@ -111,8 +109,8 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-purple-800 to-pink-600">
       <BrowserRouter>
         <Routes>
-          {/* 1. ROUTE PUBLIQUE et DYNAMIQUE : Prioritaire pour gérer /:username */}
-          <Route path="/:username" element={<SendMessage />} />
+          {/* 1. ROUTE PUBLIQUE et DYNAMIQUE : Prioritaire pour gérer /send/:username */}
+          <Route path="/send/:username" element={<SendMessage />} /> {/* ✅ Route corrigée */}
 
           {/* 2. ROUTE D'AUTHENTIFICATION/DASHBOARD (catch-all pour le reste) */}
           <Route 
